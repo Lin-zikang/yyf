@@ -1,0 +1,1907 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>超时空井字棋</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%E2%8F%B3%3C/text%3E%3C/svg%3E" />
+  <style>
+    :root {
+      --bg: #f7f8fa;
+      --panel: rgba(255, 255, 255, 0.92);
+      --panel-strong: #ffffff;
+      --line: #e5e7eb;
+      --line-strong: #cfd6de;
+      --text: #161b22;
+      --muted: #667085;
+      --accent: #2563eb;
+      --accent-soft: rgba(37, 99, 235, 0.1);
+      --accent-soft-2: rgba(37, 99, 235, 0.18);
+      --danger: #dc2626;
+      --success: #15803d;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      --shadow-soft: 0 6px 20px rgba(15, 23, 42, 0.06);
+      --radius-xl: 24px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --radius-sm: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top left, rgba(59, 130, 246, 0.08), transparent 30%),
+        radial-gradient(circle at top right, rgba(148, 163, 184, 0.12), transparent 24%),
+        linear-gradient(180deg, #fbfbfc 0%, #f4f6f8 100%);
+      color: var(--text);
+      font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      padding: 18px;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .app-shell {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .hero {
+      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.9));
+      border: 1px solid rgba(255,255,255,0.75);
+      box-shadow: var(--shadow);
+      border-radius: 28px;
+      padding: 22px 24px;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      backdrop-filter: blur(10px);
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 42px);
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      margin: 10px 0 0;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--muted);
+      max-width: 760px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .ghost-btn,
+    .primary-btn,
+    .mode-btn,
+    .side-btn,
+    .small-btn {
+      border: 1px solid var(--line);
+      background: var(--panel-strong);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 11px 16px;
+      cursor: pointer;
+      transition: 0.18s ease;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+      white-space: nowrap;
+    }
+
+    .ghost-btn:hover,
+    .primary-btn:hover,
+    .mode-btn:hover,
+    .side-btn:hover,
+    .small-btn:hover {
+      transform: translateY(-1px);
+      border-color: var(--line-strong);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .primary-btn {
+      background: linear-gradient(180deg, #3777ff, #2563eb);
+      color: white;
+      border-color: rgba(37, 99, 235, 0.5);
+    }
+
+    .mode-btn.active,
+    .side-btn.active {
+      background: var(--accent-soft);
+      border-color: rgba(37, 99, 235, 0.34);
+      color: var(--accent);
+      box-shadow: inset 0 0 0 1px rgba(37,99,235,0.08);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 380px minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.78);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius-xl);
+      padding: 20px;
+      backdrop-filter: blur(8px);
+    }
+
+    .control-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: sticky;
+      top: 16px;
+    }
+
+    .section-title {
+      margin: 0 0 12px;
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .info-card {
+      border-radius: var(--radius-lg);
+      border: 1px solid #edf1f5;
+      background: #ffffff;
+      padding: 14px 14px 12px;
+      min-height: 90px;
+    }
+
+    .info-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .info-value {
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .info-sub {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .player-x {
+      color: #2563eb;
+    }
+
+    .player-o {
+      color: #d97706;
+    }
+
+    .mode-group,
+    .side-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .action-card,
+    .notice-card,
+    .mini-card,
+    .log-card,
+    .help-card {
+      border-radius: var(--radius-lg);
+      border: 1px solid #ebeff3;
+      background: #fff;
+      padding: 14px;
+    }
+
+    .tip-text,
+    .detail-text,
+    .muted-text {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .action-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .helper-list {
+      margin: 8px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .helper-list li + li {
+      margin-top: 4px;
+    }
+
+    .select-board-list,
+    .imprint-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .select-chip {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 16px;
+      padding: 12px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    .select-chip:hover {
+      border-color: var(--line-strong);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .select-chip.active {
+      border-color: rgba(37,99,235,0.34);
+      background: var(--accent-soft);
+    }
+
+    .chip-content {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .chip-title {
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .chip-desc {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .mini-board {
+      width: 64px;
+      aspect-ratio: 1 / 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      border: 2px solid #111827;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+      flex-shrink: 0;
+    }
+
+    .mini-cell {
+      border-right: 2px solid #111827;
+      border-bottom: 2px solid #111827;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .mini-cell:nth-child(3n) {
+      border-right: none;
+    }
+
+    .mini-cell:nth-last-child(-n + 3) {
+      border-bottom: none;
+    }
+
+    .play-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .active-area {
+      display: grid;
+      grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .active-board-card,
+    .timeline-card,
+    .history-card,
+    .summary-card {
+      border-radius: var(--radius-xl);
+      border: 1px solid #ecf0f4;
+      background: #fff;
+      padding: 18px;
+    }
+
+    .active-board-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #f8fafc;
+      border: 1px solid #edf2f7;
+      color: var(--muted);
+    }
+
+    .badge.primary {
+      background: var(--accent-soft);
+      border-color: rgba(37,99,235,0.24);
+      color: var(--accent);
+    }
+
+    .badge.warn {
+      background: rgba(245, 158, 11, 0.14);
+      border-color: rgba(245, 158, 11, 0.22);
+      color: #b45309;
+    }
+
+    .active-board {
+      width: min(100%, 420px);
+      aspect-ratio: 1 / 1;
+      margin-inline: auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 0;
+      border: 4px solid #111827;
+      border-radius: 26px;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: inset 0 0 0 1px rgba(17,24,39,0.06);
+    }
+
+    .board-cell {
+      border-right: 4px solid #111827;
+      border-bottom: 4px solid #111827;
+      display: grid;
+      place-items: center;
+      background: #ffffff;
+      font-size: clamp(42px, 7vw, 82px);
+      font-weight: 800;
+      line-height: 1;
+      cursor: default;
+      user-select: none;
+      transition: 0.16s ease;
+      color: #111827;
+      padding: 0;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    .board-cell.clickable {
+      cursor: pointer;
+      background: linear-gradient(180deg, rgba(255,255,255,1), rgba(248,250,252,1));
+    }
+
+    .board-cell.clickable:hover,
+    .board-cell.clickable:active {
+      background: rgba(37, 99, 235, 0.08);
+    }
+
+    .board-cell:nth-child(3n) {
+      border-right: none;
+    }
+
+    .board-cell:nth-last-child(-n + 3) {
+      border-bottom: none;
+    }
+
+    .board-cell.x,
+    .mini-cell.x {
+      color: #2563eb;
+    }
+
+    .board-cell.o,
+    .mini-cell.o {
+      color: #d97706;
+    }
+
+    .active-side {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .summary-item {
+      border-radius: 16px;
+      background: #f8fafc;
+      border: 1px solid #edf2f7;
+      padding: 12px;
+    }
+
+    .summary-item .label {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .summary-item .value {
+      font-weight: 800;
+      font-size: 20px;
+      line-height: 1.25;
+      word-break: break-word;
+    }
+
+    .timeline-card {
+      min-width: 0;
+    }
+
+    .timeline-header,
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .timeline-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .timeline-row {
+      border: 1px solid #edf2f7;
+      background: linear-gradient(180deg, #ffffff, #fbfcfd);
+      border-radius: 20px;
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 220px max-content;
+      gap: 12px;
+      align-items: start;
+      width: max-content;
+      min-width: 100%;
+    }
+
+    .timeline-row.active {
+      border-color: rgba(37,99,235,0.28);
+      box-shadow: inset 0 0 0 1px rgba(37,99,235,0.06), var(--shadow-soft);
+      background: linear-gradient(180deg, rgba(239,246,255,0.7), #ffffff);
+    }
+
+    .line-meta {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .line-title {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .line-name {
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .line-origin {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .line-progress {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .timeline-grid-wrap {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-bottom: 2px;
+      scrollbar-width: thin;
+    }
+
+    .timeline-grid-inner {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: max-content;
+      min-width: 100%;
+    }
+
+    .timeline-axis {
+      display: grid;
+      grid-template-columns: 220px max-content;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 0;
+      padding: 0 14px;
+      width: max-content;
+      min-width: 100%;
+    }
+
+    .axis-meta {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    .axis-strip {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 96px;
+      gap: 10px;
+      min-width: max-content;
+    }
+
+    .axis-tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      border-radius: 999px;
+      border: 1px solid #e6ebf2;
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .board-strip {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 96px;
+      gap: 10px;
+      min-width: max-content;
+      align-items: start;
+    }
+
+    .board-slot {
+      width: 96px;
+      min-width: 96px;
+    }
+
+    .board-slot.placeholder {
+      min-height: 1px;
+    }
+
+    .board-thumb {
+      flex: 0 0 auto;
+      width: 96px;
+      border-radius: 18px;
+      border: 1px solid #e8edf3;
+      background: #fff;
+      padding: 10px;
+      cursor: default;
+      transition: 0.18s ease;
+    }
+
+    .board-thumb.selectable {
+      cursor: pointer;
+    }
+
+    .board-thumb.selectable:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-soft);
+      border-color: #d4dce5;
+    }
+
+    .board-thumb.active {
+      border-color: rgba(37,99,235,0.34);
+      box-shadow: inset 0 0 0 1px rgba(37,99,235,0.08);
+      background: rgba(37,99,235,0.05);
+    }
+
+    .board-thumb.current {
+      border-color: rgba(37,99,235,0.34);
+    }
+
+    .board-thumb .time-tag {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .thumb-note {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.4;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 360px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .history-item {
+      border-radius: 16px;
+      border: 1px solid #edf2f7;
+      background: #fff;
+      padding: 12px 13px;
+      font-size: 13px;
+      line-height: 1.7;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .history-index {
+      width: 24px;
+      height: 24px;
+      flex: 0 0 24px;
+      border-radius: 999px;
+      background: #f3f4f6;
+      color: #475569;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 800;
+      margin-top: 1px;
+    }
+
+    details {
+      border-radius: 18px;
+      border: 1px solid #edf2f7;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    details[open] {
+      box-shadow: var(--shadow-soft);
+    }
+
+    summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 15px 16px;
+      font-size: 15px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .help-content {
+      padding: 0 16px 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .help-block {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: #f8fafc;
+      border: 1px solid #edf2f7;
+    }
+
+    .help-block h4 {
+      margin: 0 0 6px;
+      font-size: 14px;
+    }
+
+    .help-block p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.46);
+      backdrop-filter: blur(7px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 30;
+    }
+
+    .overlay.show {
+      display: flex;
+    }
+
+    .modal {
+      width: min(100%, 520px);
+      background: #fff;
+      border-radius: 28px;
+      padding: 22px;
+      box-shadow: 0 30px 80px rgba(15, 23, 42, 0.25);
+      border: 1px solid rgba(255,255,255,0.8);
+    }
+
+    .modal h2 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    .modal p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    .modal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .notice-inline {
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--muted);
+      min-height: 22px;
+    }
+
+    .notice-inline.strong {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .danger-text {
+      color: var(--danger);
+    }
+
+    .success-text {
+      color: var(--success);
+    }
+
+    @media (max-width: 1120px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .control-panel {
+        position: static;
+      }
+
+      .active-area {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 12px;
+      }
+
+      .hero,
+      .panel,
+      .active-board-card,
+      .timeline-card,
+      .history-card,
+      .summary-card {
+        padding: 16px;
+        border-radius: 22px;
+      }
+
+      .hero {
+        flex-direction: column;
+      }
+
+      .hero-actions {
+        width: 100%;
+        justify-content: stretch;
+      }
+
+      .hero-actions button {
+        flex: 1 1 auto;
+      }
+
+      .timeline-row {
+        grid-template-columns: 1fr;
+      }
+
+      .timeline-axis {
+        display: none;
+      }
+
+      .info-grid,
+      .summary-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .active-board {
+        border-width: 3px;
+        border-radius: 22px;
+      }
+
+      .board-cell {
+        border-right-width: 3px;
+        border-bottom-width: 3px;
+      }
+
+      .board-thumb {
+        width: 88px;
+      }
+
+      .mini-board {
+        width: 58px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .info-grid,
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero h1 {
+        font-size: 30px;
+      }
+
+      .line-name {
+        font-size: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Original Rule Digital Edition</p>
+        <h1>超时空井字棋</h1>
+        <p class="subtitle">版权声明：该游戏版权全部归 Ye.Yinfeng 版权所有。</p>
+      </div>
+      <div class="hero-actions">
+        <button class="ghost-btn" id="undoBtn">撤销一步</button>
+        <button class="ghost-btn" id="restartBtn">重新开始</button>
+        <button class="ghost-btn" id="drawBtn">协议和棋</button>
+        <button class="ghost-btn" id="toggleHelpBtn">展开/收起说明</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel control-panel">
+        <div>
+          <h2 class="section-title">对局状态</h2>
+          <div class="info-grid">
+            <div class="info-card">
+              <div class="info-label">当前执子</div>
+              <div class="info-value" id="currentPlayerLabel"></div>
+              <div class="info-sub" id="currentPlayerDesc"></div>
+            </div>
+            <div class="info-card">
+              <div class="info-label">当前时间线</div>
+              <div class="info-value" id="currentLineLabel"></div>
+              <div class="info-sub" id="currentLineDesc"></div>
+            </div>
+            <div class="info-card">
+              <div class="info-label">当前时间点</div>
+              <div class="info-value" id="currentTimeLabel"></div>
+              <div class="info-sub" id="priorityHint"></div>
+            </div>
+            <div class="info-card">
+              <div class="info-label">总时间线数</div>
+              <div class="info-value" id="lineCountLabel"></div>
+              <div class="info-sub" id="boardCountLabel"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-card">
+          <h2 class="section-title">行动模式</h2>
+          <div class="mode-group" id="modeGroup">
+            <button class="mode-btn" data-mode="place">下棋</button>
+            <button class="mode-btn" data-mode="travel">时间回溯</button>
+            <button class="mode-btn" data-mode="imprint">拓印</button>
+          </div>
+          <p class="tip-text" id="modeHint"></p>
+        </div>
+
+        <div class="action-card action-stack" id="actionPanel"></div>
+
+        <div class="notice-card">
+          <h2 class="section-title">即时提示</h2>
+          <p class="notice-inline" id="noticeText"></p>
+        </div>
+
+        <details id="helpDetails">
+          <summary>实现说明与规则映射 <span id="helpSummaryMark">▼</span></summary>
+          <div class="help-content">
+            <div class="help-block">
+              <h4>1. 时间线推进</h4>
+              <p>程序按“先完成时间进度最慢的时间线，再在超过其他线时切换”的规则执行。当前线若尚未超过别的线，会继续留在当前线；若超过了较慢时间线，则自动跳转到进度最慢且创建更早的那条线。</p>
+            </div>
+            <div class="help-block">
+              <h4>2. 时间回溯</h4>
+              <p>只能从当前时间线回溯到更早时间点，并以被选定的历史局面为新时间线起点。新线可以插到最上方或最下方。</p>
+            </div>
+            <div class="help-block">
+              <h4>3. 拓印</h4>
+              <p>只能选择当前时间点正上方或正下方的相邻时间线局面。合成规则采用：空+子=子；同子相遇=空；空+空=空；异子冲突时保留当前局面的棋子。</p>
+            </div>
+            <div class="help-block">
+              <h4>4. 绝杀棋</h4>
+              <p>程序按简化可验证口径判定：若某个局面在你行动后，假设双方此后只在该局面继续普通落子，则对方无论下在哪里，你下一手都仍然存在直接成三机会，则立即判你获胜。</p>
+            </div>
+            <div class="help-block">
+              <h4>5. 判胜与和棋</h4>
+              <p>任意时间线任意局面出现连成三子即结束；若无人获胜且出现满盘局面则判和；也支持手动重开和撤销一步。</p>
+            </div>
+            <p class="footer-note">说明：你的原规则文字中“时间回溯初始时间点”在行为与操作处存在表述冲突，本程序采用更符合重点机制的实现——新线从被选中的历史时间点开始。</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="panel play-panel">
+        <div class="active-area">
+          <section class="active-board-card">
+            <div class="active-board-header">
+              <div>
+                <h2 class="section-title" style="margin-bottom: 4px;">当前可行动局面</h2>
+                <p class="muted-text" id="activeBoardDesc"></p>
+              </div>
+              <div class="badge-row" id="activeBadges"></div>
+            </div>
+            <div class="active-board" id="activeBoard"></div>
+          </section>
+
+          <div class="active-side">
+            <section class="summary-card">
+              <div class="timeline-header">
+                <h2 class="section-title" style="margin: 0;">对局摘要</h2>
+                <span class="badge" id="schedulerBadge"></span>
+              </div>
+              <div class="summary-grid">
+                <div class="summary-item">
+                  <div class="label">当前模式</div>
+                  <div class="value" id="modeLabel"></div>
+                </div>
+                <div class="summary-item">
+                  <div class="label">相邻拓印目标</div>
+                  <div class="value" id="imprintCountLabel"></div>
+                </div>
+                <div class="summary-item">
+                  <div class="label">可回溯历史点</div>
+                  <div class="value" id="travelCountLabel"></div>
+                </div>
+                <div class="summary-item">
+                  <div class="label">最近创建时间线</div>
+                  <div class="value" id="lastCreatedLabel"></div>
+                </div>
+              </div>
+            </section>
+
+            <section class="history-card">
+              <div class="history-header">
+                <h2 class="section-title" style="margin: 0;">最近行动</h2>
+                <span class="badge" id="turnBadge"></span>
+              </div>
+              <div class="history-list" id="historyList"></div>
+            </section>
+          </div>
+        </div>
+
+        <section class="timeline-card">
+          <div class="timeline-header">
+            <h2 class="section-title" style="margin: 0;">时间线全景</h2>
+            <span class="badge warn">点击缩略图可在“时间回溯 / 拓印”模式中选定目标</span>
+          </div>
+          <div class="timeline-stack" id="timelineStack"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div class="overlay" id="resultOverlay" aria-hidden="true">
+    <div class="modal">
+      <h2 id="resultTitle"></h2>
+      <p id="resultDesc"></p>
+      <div class="modal-actions">
+        <button class="primary-btn" id="playAgainBtn">再来一局</button>
+        <button class="ghost-btn" id="closeResultBtn">留在棋盘查看</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const MODE_INFO = {
+      place: {
+        label: '下棋',
+        hint: '像普通井字棋一样，在当前可行动局面里点击空格落子。落子后该时间线会复制到下一时间点，供下一回合继续。'
+      },
+      travel: {
+        label: '时间回溯',
+        hint: '从当前时间线挑一个更早的时间点，新建一条以该历史局面为起点的时间线。'
+      },
+      imprint: {
+        label: '拓印',
+        hint: '选择当前时间点正上方或正下方的相邻时间线局面，与当前局面进行有方向拓印并生成新线。'
+      }
+    };
+
+    let state = createInitialState();
+
+    const refs = {
+      currentPlayerLabel: document.getElementById('currentPlayerLabel'),
+      currentPlayerDesc: document.getElementById('currentPlayerDesc'),
+      currentLineLabel: document.getElementById('currentLineLabel'),
+      currentLineDesc: document.getElementById('currentLineDesc'),
+      currentTimeLabel: document.getElementById('currentTimeLabel'),
+      priorityHint: document.getElementById('priorityHint'),
+      lineCountLabel: document.getElementById('lineCountLabel'),
+      boardCountLabel: document.getElementById('boardCountLabel'),
+      modeGroup: document.getElementById('modeGroup'),
+      modeHint: document.getElementById('modeHint'),
+      actionPanel: document.getElementById('actionPanel'),
+      noticeText: document.getElementById('noticeText'),
+      activeBoard: document.getElementById('activeBoard'),
+      activeBoardDesc: document.getElementById('activeBoardDesc'),
+      activeBadges: document.getElementById('activeBadges'),
+      modeLabel: document.getElementById('modeLabel'),
+      imprintCountLabel: document.getElementById('imprintCountLabel'),
+      travelCountLabel: document.getElementById('travelCountLabel'),
+      lastCreatedLabel: document.getElementById('lastCreatedLabel'),
+      schedulerBadge: document.getElementById('schedulerBadge'),
+      historyList: document.getElementById('historyList'),
+      turnBadge: document.getElementById('turnBadge'),
+      timelineStack: document.getElementById('timelineStack'),
+      resultOverlay: document.getElementById('resultOverlay'),
+      resultTitle: document.getElementById('resultTitle'),
+      resultDesc: document.getElementById('resultDesc'),
+      helpDetails: document.getElementById('helpDetails'),
+      helpSummaryMark: document.getElementById('helpSummaryMark')
+    };
+
+    document.getElementById('restartBtn').addEventListener('click', () => restartGame(true));
+    document.getElementById('undoBtn').addEventListener('click', undoStep);
+    document.getElementById('drawBtn').addEventListener('click', agreeDraw);
+    document.getElementById('toggleHelpBtn').addEventListener('click', () => {
+      refs.helpDetails.open = !refs.helpDetails.open;
+      render();
+    });
+    document.getElementById('playAgainBtn').addEventListener('click', () => restartGame(false));
+    document.getElementById('closeResultBtn').addEventListener('click', () => {
+      refs.resultOverlay.classList.remove('show');
+      refs.resultOverlay.setAttribute('aria-hidden', 'true');
+    });
+    refs.helpDetails.addEventListener('toggle', render);
+
+    refs.modeGroup.addEventListener('click', (event) => {
+      const btn = event.target.closest('[data-mode]');
+      if (!btn || state.gameOver) return;
+      changeMode(btn.dataset.mode);
+    });
+
+    refs.activeBoard.addEventListener('click', (event) => {
+      const cell = event.target.closest('[data-cell-index]');
+      if (!cell || state.gameOver) return;
+      if (state.mode !== 'place') return;
+      const index = Number(cell.dataset.cellIndex);
+      performPlace(index);
+    });
+
+    refs.timelineStack.addEventListener('click', (event) => {
+      const boardBtn = event.target.closest('[data-thumb-line-id]');
+      if (!boardBtn || state.gameOver) return;
+      const lineId = Number(boardBtn.dataset.thumbLineId);
+      const boardIndex = Number(boardBtn.dataset.thumbBoardIndex);
+      handleThumbSelection(lineId, boardIndex);
+    });
+
+    refs.actionPanel.addEventListener('click', (event) => {
+      const modeBtn = event.target.closest('[data-side]');
+      if (modeBtn) {
+        state.travelSide = modeBtn.dataset.side;
+        render();
+        return;
+      }
+      const selectTravel = event.target.closest('[data-travel-index]');
+      if (selectTravel) {
+        state.selectedTravelIndex = Number(selectTravel.dataset.travelIndex);
+        state.notice = `已选中 ${getActiveLine().name} · t${getActiveLine().boards[state.selectedTravelIndex].t} 作为回溯目标。`;
+        render();
+        return;
+      }
+      const executeTravel = event.target.closest('[data-action="execute-travel"]');
+      if (executeTravel) {
+        performTimeTravel();
+        return;
+      }
+      const selectImprint = event.target.closest('[data-imprint-line-id]');
+      if (selectImprint) {
+        state.selectedImprint = {
+          lineId: Number(selectImprint.dataset.imprintLineId),
+          direction: selectImprint.dataset.direction
+        };
+        const line = getLineById(state.selectedImprint.lineId);
+        state.notice = `已选中 ${line.name} 作为${state.selectedImprint.direction === 'up' ? '向上' : '向下'}拓印对象。`;
+        render();
+        return;
+      }
+      const executeImprint = event.target.closest('[data-action="execute-imprint"]');
+      if (executeImprint) {
+        performImprint();
+      }
+    });
+
+    function createInitialState() {
+      return {
+        turn: 'X',
+        mode: 'place',
+        gameOver: false,
+        result: null,
+        notice: '游戏开始：① 时间线已建立，X 先手。',
+        travelSide: 'bottom',
+        selectedTravelIndex: null,
+        selectedImprint: null,
+        lines: [
+          {
+            id: 1,
+            name: '①',
+            createdOrder: 1,
+            origin: '初始时间线',
+            boards: [
+              {
+                id: 1,
+                t: 0,
+                cells: Array(9).fill(''),
+                actor: null,
+                kind: 'start'
+              }
+            ]
+          }
+        ],
+        activeLineId: 1,
+        logs: ['游戏开始：① 时间线已建立，X 先手。'],
+        counters: {
+          lineId: 1,
+          boardId: 1,
+          createdOrder: 1,
+          lineNameIndex: 1
+        },
+        history: []
+      };
+    }
+
+    function restartGame(confirmNotice) {
+      state = createInitialState();
+      if (confirmNotice) {
+        state.notice = '已重新开始新对局。';
+        state.logs.unshift('已重新开始新对局。');
+      }
+      refs.resultOverlay.classList.remove('show');
+      refs.resultOverlay.setAttribute('aria-hidden', 'true');
+      render();
+    }
+
+    function deepClone(obj) {
+      return JSON.parse(JSON.stringify(obj));
+    }
+
+    function pushHistory() {
+      const snapshot = deepClone({ ...state, history: [] });
+      state.history.push(snapshot);
+      if (state.history.length > 120) state.history.shift();
+    }
+
+    function undoStep() {
+      if (!state.history.length) {
+        state.notice = '当前没有可撤销的历史步骤。';
+        render();
+        return;
+      }
+      const previous = state.history.pop();
+      previous.history = state.history;
+      state = previous;
+      state.notice = '已撤销一步。';
+      refs.resultOverlay.classList.remove('show');
+      refs.resultOverlay.setAttribute('aria-hidden', 'true');
+      render();
+    }
+
+    function agreeDraw() {
+      if (state.gameOver) return;
+      pushHistory();
+      state.gameOver = true;
+      state.result = {
+        title: '双方协议和棋',
+        desc: '本局按照规则中的协议和棋条件结束。',
+        winner: null
+      };
+      state.notice = state.result.desc;
+      state.logs.unshift('双方达成一致，当前对局协议和棋。');
+      refs.resultTitle.textContent = state.result.title;
+      refs.resultDesc.textContent = state.result.desc;
+      refs.resultOverlay.classList.add('show');
+      refs.resultOverlay.setAttribute('aria-hidden', 'false');
+      render();
+    }
+
+    function changeMode(mode) {
+      state.mode = mode;
+      state.selectedTravelIndex = null;
+      state.selectedImprint = null;
+      state.notice = MODE_INFO[mode].hint;
+      render();
+    }
+
+    function getLineById(lineId) {
+      return state.lines.find((line) => line.id === lineId);
+    }
+
+    function getLineIndexById(lineId) {
+      return state.lines.findIndex((line) => line.id === lineId);
+    }
+
+    function getLastBoard(line) {
+      return line.boards[line.boards.length - 1];
+    }
+
+    function getActiveLine() {
+      return getLineById(state.activeLineId);
+    }
+
+    function getActiveBoard() {
+      return getLastBoard(getActiveLine());
+    }
+
+    function getProgress(line) {
+      return getLastBoard(line).t;
+    }
+
+    function getTotalBoards() {
+      return state.lines.reduce((sum, line) => sum + line.boards.length, 0);
+    }
+
+    function nextPlayer(player) {
+      return player === 'X' ? 'O' : 'X';
+    }
+
+    function lineNameFromIndex(index) {
+      const circled = ['⓪', '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩', '⑪', '⑫', '⑬', '⑭', '⑮', '⑯', '⑰', '⑱', '⑲', '⑳'];
+      return circled[index] || `T${index}`;
+    }
+
+    function createBoard(cells, t, actor, kind) {
+      state.counters.boardId += 1;
+      return {
+        id: state.counters.boardId,
+        t,
+        cells: [...cells],
+        actor: actor || null,
+        kind: kind || 'copy'
+      };
+    }
+
+    function createLine(origin, initialBoard) {
+      state.counters.lineId += 1;
+      state.counters.createdOrder += 1;
+      state.counters.lineNameIndex += 1;
+      return {
+        id: state.counters.lineId,
+        name: lineNameFromIndex(state.counters.lineNameIndex),
+        createdOrder: state.counters.createdOrder,
+        origin,
+        boards: [initialBoard]
+      };
+    }
+
+    function checkWinner(cells) {
+      const wins = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6]
+      ];
+      for (const [a, b, c] of wins) {
+        if (cells[a] && cells[a] === cells[b] && cells[a] === cells[c]) {
+          return cells[a];
+        }
+      }
+      return null;
+    }
+
+    function isBoardFull(cells) {
+      return cells.every(Boolean);
+    }
+
+    function hasForcedWinInOne(boardCells, player) {
+      const opponent = nextPlayer(player);
+      const empties = boardCells.map((value, idx) => value ? null : idx).filter((v) => v !== null);
+      if (empties.length < 2) return false;
+      for (const oppMove of empties) {
+        const afterOpponent = [...boardCells];
+        afterOpponent[oppMove] = opponent;
+        if (checkWinner(afterOpponent) === opponent) {
+          return false;
+        }
+        if (isBoardFull(afterOpponent)) {
+          return false;
+        }
+        let canWinNext = false;
+        for (let i = 0; i < 9; i += 1) {
+          if (afterOpponent[i]) continue;
+          const afterPlayer = [...afterOpponent];
+          afterPlayer[i] = player;
+          if (checkWinner(afterPlayer) === player) {
+            canWinNext = true;
+            break;
+          }
+        }
+        if (!canWinNext) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function evaluateOutcome(actor) {
+      let actorWin = false;
+      let opponentWin = false;
+      let actorWinBoard = null;
+      let opponentWinBoard = null;
+      const opponent = nextPlayer(actor);
+
+      for (const line of state.lines) {
+        for (const board of line.boards) {
+          const winner = checkWinner(board.cells);
+          if (winner === actor && !actorWin) {
+            actorWin = true;
+            actorWinBoard = { line, board };
+          }
+          if (winner === opponent && !opponentWin) {
+            opponentWin = true;
+            opponentWinBoard = { line, board };
+          }
+        }
+      }
+
+      if (actorWin) {
+        return {
+          ended: true,
+          title: `${actor} 方获胜`,
+          desc: `在时间线 ${actorWinBoard.line.name} 的 t${actorWinBoard.board.t} 局面中形成三子连线。`,
+          winner: actor
+        };
+      }
+
+      if (opponentWin) {
+        return {
+          ended: true,
+          title: `${opponent} 方获胜`,
+          desc: `在时间线 ${opponentWinBoard.line.name} 的 t${opponentWinBoard.board.t} 局面中形成三子连线。`,
+          winner: opponent
+        };
+      }
+
+      for (const line of state.lines) {
+        for (const board of line.boards) {
+          if (hasForcedWinInOne(board.cells, actor)) {
+            return {
+              ended: true,
+              title: `${actor} 方绝杀胜`,
+              desc: `在时间线 ${line.name} 的 t${board.t} 局面中满足“对手任意普通落子后，你下一手仍可直接成三”的绝杀棋条件。`,
+              winner: actor
+            };
+          }
+        }
+      }
+
+      for (const line of state.lines) {
+        for (const board of line.boards) {
+          if (!checkWinner(board.cells) && isBoardFull(board.cells)) {
+            return {
+              ended: true,
+              title: '双方和棋',
+              desc: `时间线 ${line.name} 的 t${board.t} 局面已满盘且无人连成三子。`,
+              winner: null
+            };
+          }
+        }
+      }
+
+      return { ended: false };
+    }
+
+    function chooseNextActive(currentLineId) {
+      const current = getLineById(currentLineId);
+      const currentProgress = getProgress(current);
+      const slower = state.lines.filter((line) => getProgress(line) < currentProgress);
+      if (!slower.length) return currentLineId;
+      const minProgress = Math.min(...slower.map(getProgress));
+      const candidates = slower.filter((line) => getProgress(line) === minProgress);
+      candidates.sort((a, b) => a.createdOrder - b.createdOrder);
+      return candidates[0].id;
+    }
+
+    function finalizeAction(actor, currentLineId, overrideLineId, logText) {
+      if (logText) state.logs.unshift(logText);
+      const outcome = evaluateOutcome(actor);
+      if (outcome.ended) {
+        state.gameOver = true;
+        state.result = outcome;
+        state.notice = outcome.desc;
+        refs.resultTitle.textContent = outcome.title;
+        refs.resultDesc.textContent = outcome.desc;
+        refs.resultOverlay.classList.add('show');
+        refs.resultOverlay.setAttribute('aria-hidden', 'false');
+        render();
+        return;
+      }
+
+      state.turn = nextPlayer(actor);
+      state.activeLineId = overrideLineId || chooseNextActive(currentLineId);
+      state.selectedTravelIndex = null;
+      state.selectedImprint = null;
+      state.notice = `轮到 ${state.turn} 方行动。当前需处理时间线 ${getActiveLine().name}。`;
+      if (state.mode !== 'place' && state.mode !== 'travel' && state.mode !== 'imprint') {
+        state.mode = 'place';
+      }
+      render();
+    }
+
+    function performPlace(index) {
+      const line = getActiveLine();
+      const currentBoard = getActiveBoard();
+      if (currentBoard.cells[index]) {
+        state.notice = '该格已有棋子，不能重复落子。';
+        render();
+        return;
+      }
+      pushHistory();
+      currentBoard.cells[index] = state.turn;
+      currentBoard.actor = state.turn;
+      currentBoard.kind = 'place';
+      const nextBoard = createBoard(currentBoard.cells, currentBoard.t + 1, state.turn, 'place-copy');
+      line.boards.push(nextBoard);
+      const logText = `${state.turn} 方在 ${line.name} · t${currentBoard.t} 落子，时间线推进到 t${nextBoard.t}。`;
+      finalizeAction(state.turn, line.id, null, logText);
+    }
+
+    function performTimeTravel() {
+      const line = getActiveLine();
+      if (line.boards.length < 2) {
+        state.notice = '当前时间线至少需要有 2 个局面，才允许时间回溯。';
+        render();
+        return;
+      }
+      if (state.selectedTravelIndex === null || state.selectedTravelIndex >= line.boards.length - 1) {
+        state.notice = '请先选中一个早于当前时间点的历史局面。';
+        render();
+        return;
+      }
+      const sourceBoard = line.boards[state.selectedTravelIndex];
+      pushHistory();
+      const newBoard = createBoard(sourceBoard.cells, sourceBoard.t, state.turn, 'travel');
+      const newLine = createLine(`由 ${line.name} 的 t${sourceBoard.t} 回溯创建`, newBoard);
+      if (state.travelSide === 'top') {
+        state.lines.unshift(newLine);
+      } else {
+        state.lines.push(newLine);
+      }
+      const minProgress = Math.min(...state.lines.map(getProgress));
+      const overrideLineId = getProgress(newLine) === minProgress ? newLine.id : null;
+      const logText = `${state.turn} 方从 ${line.name} · t${getActiveBoard().t} 回溯到 t${sourceBoard.t}，新建时间线 ${newLine.name}（${state.travelSide === 'top' ? '置顶' : '置底'}）。`;
+      finalizeAction(state.turn, line.id, overrideLineId, logText);
+    }
+
+    function getImprintTargets() {
+      const activeLine = getActiveLine();
+      const activeLineIndex = getLineIndexById(activeLine.id);
+      const activeTime = getProgress(activeLine);
+      const result = [];
+
+      const upLine = state.lines[activeLineIndex - 1];
+      const downLine = state.lines[activeLineIndex + 1];
+      if (upLine) {
+        const upBoard = upLine.boards.find((board) => board.t === activeTime);
+        if (upBoard) result.push({ line: upLine, board: upBoard, direction: 'up' });
+      }
+      if (downLine) {
+        const downBoard = downLine.boards.find((board) => board.t === activeTime);
+        if (downBoard) result.push({ line: downLine, board: downBoard, direction: 'down' });
+      }
+      return result;
+    }
+
+    function mergeByImprint(currentCells, otherCells) {
+      return currentCells.map((current, idx) => {
+        const other = otherCells[idx];
+        if (!current && !other) return '';
+        if (!current && other) return other;
+        if (current && !other) return current;
+        if (current === other) return '';
+        return current;
+      });
+    }
+
+    function performImprint() {
+      const targets = getImprintTargets();
+      if (!targets.length) {
+        state.notice = '当前局面上下没有满足同一时间点条件的相邻时间线，无法拓印。';
+        render();
+        return;
+      }
+      if (!state.selectedImprint) {
+        state.notice = '请先选中一个相邻时间线作为拓印目标。';
+        render();
+        return;
+      }
+      const target = targets.find((item) => item.line.id === state.selectedImprint.lineId && item.direction === state.selectedImprint.direction);
+      if (!target) {
+        state.notice = '所选拓印目标已无效，请重新选择。';
+        render();
+        return;
+      }
+      const activeLine = getActiveLine();
+      const currentBoard = getActiveBoard();
+      pushHistory();
+      const merged = mergeByImprint(currentBoard.cells, target.board.cells);
+      const newBoard = createBoard(merged, currentBoard.t, state.turn, 'imprint');
+      const newLine = createLine(`由 ${activeLine.name} 的 t${currentBoard.t} ${target.direction === 'up' ? '向上' : '向下'}拓印 ${target.line.name} 创建`, newBoard);
+      if (target.direction === 'up') {
+        state.lines.unshift(newLine);
+      } else {
+        state.lines.push(newLine);
+      }
+      const notExceededAny = state.lines.every((line) => line.id === newLine.id || getProgress(newLine) <= getProgress(line));
+      const overrideLineId = notExceededAny ? newLine.id : null;
+      const logText = `${state.turn} 方在 ${activeLine.name} · t${currentBoard.t} 对 ${target.line.name} 执行${target.direction === 'up' ? '向上' : '向下'}拓印，生成时间线 ${newLine.name}。`;
+      finalizeAction(state.turn, activeLine.id, overrideLineId, logText);
+    }
+
+    function handleThumbSelection(lineId, boardIndex) {
+      const activeLine = getActiveLine();
+      if (state.mode === 'travel' && lineId === activeLine.id && boardIndex < activeLine.boards.length - 1) {
+        state.selectedTravelIndex = boardIndex;
+        state.notice = `已选中 ${activeLine.name} · t${activeLine.boards[boardIndex].t} 作为回溯目标。`;
+        render();
+        return;
+      }
+      if (state.mode === 'imprint') {
+        const target = getImprintTargets().find((item) => item.line.id === lineId && item.board.id === getLineById(lineId).boards[boardIndex].id);
+        if (target) {
+          state.selectedImprint = { lineId: target.line.id, direction: target.direction };
+          state.notice = `已选中 ${target.line.name} 作为${target.direction === 'up' ? '向上' : '向下'}拓印对象。`;
+          render();
+          return;
+        }
+      }
+    }
+
+    function renderBoardCells(cells, interactive) {
+      return cells.map((cell, idx) => {
+        const classes = ['board-cell'];
+        if (cell === 'X') classes.push('x');
+        if (cell === 'O') classes.push('o');
+        if (interactive && !cell) classes.push('clickable');
+        return `<button type="button" class="${classes.join(' ')}" data-cell-index="${idx}">${cell || ''}</button>`;
+      }).join('');
+    }
+
+    function renderMiniBoard(cells) {
+      return `
+        <div class="mini-board">
+          ${cells.map((cell) => `<div class="mini-cell ${cell === 'X' ? 'x' : cell === 'O' ? 'o' : ''}">${cell || ''}</div>`).join('')}
+        </div>
+      `;
+    }
+
+    function renderActionPanel() {
+      const activeLine = getActiveLine();
+      if (state.mode === 'place') {
+        refs.actionPanel.innerHTML = `
+          <div class="mini-card">
+            <p class="detail-text">请直接点击左侧大棋盘中的空格落子。程序会自动把该时间线推进到下一时间点，并根据“最慢时间线优先”的规则决定下一位玩家所在的时间线。</p>
+            <ul class="helper-list">
+              <li>同一局面里不能重叠落子。</li>
+              <li>任一时间线任一局面连成三子即立即获胜。</li>
+              <li>若出现满盘且无人胜出，则整局和棋。</li>
+            </ul>
+          </div>
+        `;
+        return;
+      }
+
+      if (state.mode === 'travel') {
+        const candidateBoards = activeLine.boards.slice(0, -1);
+        const listHtml = candidateBoards.length
+          ? candidateBoards.map((board, idx) => `
+              <button class="select-chip ${state.selectedTravelIndex === idx ? 'active' : ''}" type="button" data-travel-index="${idx}">
+                ${renderMiniBoard(board.cells)}
+                <span class="chip-content">
+                  <span class="chip-title">${activeLine.name} · t${board.t}</span>
+                  <span class="chip-desc">作为新时间线的初始局面，从这里分叉。</span>
+                </span>
+              </button>
+            `).join('')
+          : `<p class="muted-text">当前时间线还没有足够的历史局面，暂时不能时间回溯。</p>`;
+
+        refs.actionPanel.innerHTML = `
+          <div class="mini-card">
+            <p class="detail-text">先选定一个历史局面，再决定新时间线插到最上方或最下方。</p>
+          </div>
+          <div class="mini-card">
+            <div class="section-title" style="font-size:15px; margin-bottom: 10px;">新线插入位置</div>
+            <div class="side-group">
+              <button type="button" class="side-btn ${state.travelSide === 'top' ? 'active' : ''}" data-side="top">置于最上方</button>
+              <button type="button" class="side-btn ${state.travelSide === 'bottom' ? 'active' : ''}" data-side="bottom">置于最下方</button>
+            </div>
+          </div>
+          <div class="mini-card">
+            <div class="section-title" style="font-size:15px; margin-bottom: 10px;">可选历史局面</div>
+            <div class="select-board-list">${listHtml}</div>
+          </div>
+          <button class="primary-btn" type="button" data-action="execute-travel">执行时间回溯</button>
+        `;
+        return;
+      }
+
+      const targets = getImprintTargets();
+      const listHtml = targets.length
+        ? targets.map((item) => `
+            <button class="select-chip ${state.selectedImprint && state.selectedImprint.lineId === item.line.id && state.selectedImprint.direction === item.direction ? 'active' : ''}" type="button" data-imprint-line-id="${item.line.id}" data-direction="${item.direction}">
+              ${renderMiniBoard(item.board.cells)}
+              <span class="chip-content">
+                <span class="chip-title">${item.direction === 'up' ? '向上' : '向下'}拓印 ${item.line.name}</span>
+                <span class="chip-desc">目标局面：${item.line.name} · t${item.board.t}，新线将被插入${item.direction === 'up' ? '最上方' : '最下方'}。</span>
+              </span>
+            </button>
+          `).join('')
+        : `<p class="muted-text">当前局面没有满足条件的相邻时间线，暂时不能拓印。</p>`;
+
+      refs.actionPanel.innerHTML = `
+        <div class="mini-card">
+          <p class="detail-text">拓印只允许选择与当前局面同一时间点、且位于正上方或正下方的相邻时间线局面。</p>
+          <ul class="helper-list">
+            <li>空 + 子 = 子</li>
+            <li>同子相遇 = 空</li>
+            <li>异子冲突 = 保留当前局面的棋子</li>
+          </ul>
+        </div>
+        <div class="mini-card">
+          <div class="section-title" style="font-size:15px; margin-bottom: 10px;">可选拓印对象</div>
+          <div class="imprint-list">${listHtml}</div>
+        </div>
+        <button class="primary-btn" type="button" data-action="execute-imprint">执行拓印</button>
+      `;
+    }
+
+    function renderHistory() {
+      const logs = state.logs.slice(0, 14);
+      refs.historyList.innerHTML = logs.length
+        ? logs.map((item, idx) => `
+            <div class="history-item">
+              <div class="history-index">${idx + 1}</div>
+              <div>${item}</div>
+            </div>
+          `).join('')
+        : `<p class="muted-text">暂无行动记录。</p>`;
+    }
+
+    function renderTimelineStack() {
+      const activeLine = getActiveLine();
+      const imprintTargets = getImprintTargets();
+      const maxTime = Math.max(...state.lines.flatMap((line) => line.boards.map((board) => board.t)));
+      const axisHtml = Array.from({ length: maxTime + 1 }, (_, time) => `<div class="axis-tag">t${time}</div>`).join('');
+
+      const rowsHtml = state.lines.map((line) => {
+        const isActiveLine = line.id === activeLine.id;
+        const currentProgress = getProgress(line);
+        const boardByTime = new Map(line.boards.map((board, boardIndex) => [board.t, { board, boardIndex }]));
+        const boardsHtml = Array.from({ length: maxTime + 1 }, (_, time) => {
+          const entry = boardByTime.get(time);
+          if (!entry) {
+            return `<div class="board-slot placeholder" aria-hidden="true"></div>`;
+          }
+
+          const { board, boardIndex } = entry;
+          const isLast = boardIndex === line.boards.length - 1;
+          const isTravelSelectable = state.mode === 'travel' && isActiveLine && boardIndex < line.boards.length - 1;
+          const imprintTarget = imprintTargets.find((item) => item.line.id === line.id && item.board.id === board.id);
+          const isImprintSelectable = state.mode === 'imprint' && Boolean(imprintTarget);
+          const selectedTravel = state.selectedTravelIndex === boardIndex && isActiveLine && state.mode === 'travel';
+          const selectedImprint = state.selectedImprint && imprintTarget && state.selectedImprint.lineId === line.id && state.selectedImprint.direction === imprintTarget.direction;
+          const classes = ['board-thumb'];
+          if (isLast) classes.push('current');
+          if (selectedTravel || selectedImprint) classes.push('active');
+          if (isTravelSelectable || isImprintSelectable) classes.push('selectable');
+          let note = '';
+          if (isActiveLine && isLast) note = '当前可行动局面';
+          else if (isTravelSelectable) note = '可作为回溯起点';
+          else if (imprintTarget) note = `可作为${imprintTarget.direction === 'up' ? '向上' : '向下'}拓印对象`;
+          else if (isLast) note = '该时间线当前末端';
+          return `
+            <button type="button" class="${classes.join(' ')}" data-thumb-line-id="${line.id}" data-thumb-board-index="${boardIndex}">
+              <div class="time-tag"><span>t${board.t}</span><span>${isLast ? '末端' : '历史'}</span></div>
+              ${renderMiniBoard(board.cells)}
+              <div class="thumb-note">${note || '历史局面'}</div>
+            </button>
+          `;
+        }).join('');
+
+        return `
+          <div class="timeline-row ${isActiveLine ? 'active' : ''}">
+            <div class="line-meta">
+              <div class="line-title">
+                <div class="line-name">${line.name}</div>
+                ${isActiveLine ? '<span class="badge primary">当前线</span>' : ''}
+              </div>
+              <div class="line-origin">${line.origin}</div>
+              <div class="line-progress">进度：t${currentProgress} ｜ 局面数：${line.boards.length} ｜ 创建序：${line.createdOrder}</div>
+            </div>
+            <div class="board-strip">${boardsHtml}</div>
+          </div>
+        `;
+      }).join('');
+
+      refs.timelineStack.innerHTML = `
+        <div class="timeline-grid-wrap">
+          <div class="timeline-grid-inner">
+            <div class="timeline-axis">
+              <div class="axis-meta">绝对时间对齐</div>
+              <div class="axis-strip">${axisHtml}</div>
+            </div>
+            ${rowsHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    function render() {
+      const activeLine = getActiveLine();
+      const activeBoard = getActiveBoard();
+      const otherSlowLines = state.lines.filter((line) => getProgress(line) < getProgress(activeLine));
+      const minProgress = Math.min(...state.lines.map(getProgress));
+      const linesAtMinProgress = state.lines.filter((line) => getProgress(line) === minProgress);
+      const lastCreated = state.lines.reduce((latest, line) => line.createdOrder > latest.createdOrder ? line : latest, state.lines[0]);
+      const imprintTargets = getImprintTargets();
+      const travelCount = Math.max(0, activeLine.boards.length - 1);
+
+      refs.currentPlayerLabel.textContent = state.turn;
+      refs.currentPlayerLabel.className = `info-value ${state.turn === 'X' ? 'player-x' : 'player-o'}`;
+      refs.currentPlayerDesc.textContent = `${state.turn === 'X' ? '蓝色 X' : '橙色 O'} 行动中`;
+      refs.currentLineLabel.textContent = activeLine.name;
+      refs.currentLineDesc.textContent = activeLine.origin;
+      refs.currentTimeLabel.textContent = `t${activeBoard.t}`;
+      refs.priorityHint.textContent = linesAtMinProgress.map((line) => line.name).join('、') + ' 为当前最慢进度线';
+      refs.lineCountLabel.textContent = String(state.lines.length);
+      refs.boardCountLabel.textContent = `全局共 ${getTotalBoards()} 个记录局面`;
+      refs.modeHint.textContent = MODE_INFO[state.mode].hint;
+      refs.modeLabel.textContent = MODE_INFO[state.mode].label;
+      refs.imprintCountLabel.textContent = imprintTargets.length ? `${imprintTargets.length} 个` : '无';
+      refs.travelCountLabel.textContent = `${travelCount} 个`;
+      refs.lastCreatedLabel.textContent = `${lastCreated.name}`;
+      refs.schedulerBadge.textContent = otherSlowLines.length
+        ? `当前线若继续会转向更慢时间线`
+        : `当前线尚未超过其它线，可继续处理`;
+      refs.turnBadge.textContent = `第 ${state.logs.length} 条记录`;
+      refs.activeBoardDesc.textContent = `当前玩家 ${state.turn} 正在 ${activeLine.name} · t${activeBoard.t} 行动。`;
+      refs.noticeText.textContent = state.notice || '';
+      refs.noticeText.className = `notice-inline ${state.gameOver ? 'strong' : ''}`;
+      refs.helpSummaryMark.textContent = refs.helpDetails.open ? '▲' : '▼';
+
+      [...refs.modeGroup.querySelectorAll('.mode-btn')].forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.mode === state.mode);
+        btn.disabled = state.gameOver;
+      });
+
+      refs.activeBoard.innerHTML = renderBoardCells(activeBoard.cells, !state.gameOver && state.mode === 'place');
+
+      refs.activeBadges.innerHTML = `
+        <span class="badge primary">${state.turn} 方行动</span>
+        <span class="badge">当前线：${activeLine.name}</span>
+        <span class="badge">当前时间：t${activeBoard.t}</span>
+        <span class="badge ${imprintTargets.length ? 'warn' : ''}">拓印目标：${imprintTargets.length}</span>
+      `;
+
+      renderActionPanel();
+      renderHistory();
+      renderTimelineStack();
+
+      if (state.result && state.gameOver) {
+        refs.resultTitle.textContent = state.result.title;
+        refs.resultDesc.textContent = state.result.desc;
+      }
+    }
+
+    render();
+  </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"7939e04a4baf43c8b86a560f74aac60e","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"7939e04a4baf43c8b86a560f74aac60e","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
