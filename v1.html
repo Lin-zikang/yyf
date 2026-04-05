@@ -524,11 +524,9 @@
       border-radius: 20px;
       padding: 14px;
       display: grid;
-      grid-template-columns: 220px max-content;
+      grid-template-columns: 220px minmax(0, 1fr);
       gap: 12px;
       align-items: start;
-      width: max-content;
-      min-width: 100%;
     }
 
     .timeline-row.active {
@@ -569,78 +567,12 @@
       line-height: 1.6;
     }
 
-    .timeline-grid-wrap {
-      width: 100%;
-      max-width: 100%;
+    .board-strip {
+      display: flex;
+      gap: 10px;
       overflow-x: auto;
-      overflow-y: hidden;
       padding-bottom: 2px;
       scrollbar-width: thin;
-    }
-
-    .timeline-grid-inner {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      width: max-content;
-      min-width: 100%;
-    }
-
-    .timeline-axis {
-      display: grid;
-      grid-template-columns: 220px max-content;
-      gap: 12px;
-      align-items: center;
-      margin-bottom: 0;
-      padding: 0 14px;
-      width: max-content;
-      min-width: 100%;
-    }
-
-    .axis-meta {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--muted);
-      letter-spacing: 0.04em;
-    }
-
-    .axis-strip {
-      display: grid;
-      grid-auto-flow: column;
-      grid-auto-columns: 96px;
-      gap: 10px;
-      min-width: max-content;
-    }
-
-    .axis-tag {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 34px;
-      border-radius: 999px;
-      border: 1px solid #e6ebf2;
-      background: #f8fafc;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .board-strip {
-      display: grid;
-      grid-auto-flow: column;
-      grid-auto-columns: 96px;
-      gap: 10px;
-      min-width: max-content;
-      align-items: start;
-    }
-
-    .board-slot {
-      width: 96px;
-      min-width: 96px;
-    }
-
-    .board-slot.placeholder {
-      min-height: 1px;
     }
 
     .board-thumb {
@@ -892,10 +824,6 @@
 
       .timeline-row {
         grid-template-columns: 1fr;
-      }
-
-      .timeline-axis {
-        display: none;
       }
 
       .info-grid,
@@ -1776,20 +1704,10 @@
     function renderTimelineStack() {
       const activeLine = getActiveLine();
       const imprintTargets = getImprintTargets();
-      const maxTime = Math.max(...state.lines.flatMap((line) => line.boards.map((board) => board.t)));
-      const axisHtml = Array.from({ length: maxTime + 1 }, (_, time) => `<div class="axis-tag">t${time}</div>`).join('');
-
-      const rowsHtml = state.lines.map((line) => {
+      refs.timelineStack.innerHTML = state.lines.map((line) => {
         const isActiveLine = line.id === activeLine.id;
         const currentProgress = getProgress(line);
-        const boardByTime = new Map(line.boards.map((board, boardIndex) => [board.t, { board, boardIndex }]));
-        const boardsHtml = Array.from({ length: maxTime + 1 }, (_, time) => {
-          const entry = boardByTime.get(time);
-          if (!entry) {
-            return `<div class="board-slot placeholder" aria-hidden="true"></div>`;
-          }
-
-          const { board, boardIndex } = entry;
+        const boardsHtml = line.boards.map((board, boardIndex) => {
           const isLast = boardIndex === line.boards.length - 1;
           const isTravelSelectable = state.mode === 'travel' && isActiveLine && boardIndex < line.boards.length - 1;
           const imprintTarget = imprintTargets.find((item) => item.line.id === line.id && item.board.id === board.id);
@@ -1813,7 +1731,6 @@
             </button>
           `;
         }).join('');
-
         return `
           <div class="timeline-row ${isActiveLine ? 'active' : ''}">
             <div class="line-meta">
@@ -1828,18 +1745,6 @@
           </div>
         `;
       }).join('');
-
-      refs.timelineStack.innerHTML = `
-        <div class="timeline-grid-wrap">
-          <div class="timeline-grid-inner">
-            <div class="timeline-axis">
-              <div class="axis-meta">绝对时间对齐</div>
-              <div class="axis-strip">${axisHtml}</div>
-            </div>
-            ${rowsHtml}
-          </div>
-        </div>
-      `;
     }
 
     function render() {
@@ -1901,7 +1806,6 @@
 
     render();
   </script>
-<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"7939e04a4baf43c8b86a560f74aac60e","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"7939e04a4baf43c8b86a560f74aac60e","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
 </html>
